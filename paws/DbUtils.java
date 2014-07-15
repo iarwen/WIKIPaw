@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public class DbUtils
 {
-    private static String INSERTWIKI="INSERT INTO T_WIKI(UUID,TILTLE,CONTENT,WIKIFROM,URLLINK,PAWTIME) VALUES(?,?,?,?,?,?)";
+    private static String INSERTWIKI="INSERT INTO T_WIKI(UUID,TITLE,CONTENT,WIKIFROM,URLLINK,PAWTIME) VALUES(?,?,?,?,?,?)";
     private static String SELECTWIKI="SELECT 1 FROM  T_WIKI WHERE URLLINK=?";
     
     public static int addAWiki(WIKI wiki) throws SQLException{

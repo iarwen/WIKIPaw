@@ -17,11 +17,11 @@ public class BaiduPawWorker implements Runnable
             if (!DbUtils.isLinkExist(baiduPaw.url))
             {
                 wiki= baiduPaw.getWIKI();
-                if(!"".equals(wiki.getTitle())){
-                    DbUtils.addAWiki(baiduPaw.getWIKI());
-                }
+                //if(!"".equals(wiki.getTitle())){
+                    DbUtils.addAWiki(wiki);
+                //}
             }
-            Thread.sleep(100);
+            Thread.sleep(10);
         }
         catch (SQLException e)
         {

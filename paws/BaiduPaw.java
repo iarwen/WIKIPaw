@@ -32,7 +32,17 @@ public class BaiduPaw extends Paw
             OrFilter orFilter = new OrFilter();  
             orFilter.setPredicates(new NodeFilter[] { filter , filtert});  
             
-            NodeList nodes = parser.extractAllNodesThatMatch(orFilter); 
+            NodeList nodes=null;
+            try
+            {
+                nodes = parser.extractAllNodesThatMatch(orFilter);
+            }
+            catch (Exception e)
+            {
+                parser.reset();
+                nodes = parser.extractAllNodesThatMatch(orFilter);
+                e.printStackTrace();
+            } 
             
             StringBuffer content=new StringBuffer();
             StringBuffer title=new StringBuffer();
