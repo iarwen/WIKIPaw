@@ -41,20 +41,30 @@ public class BaiduPaw extends Paw
             {
                 parser.reset();
                 nodes = parser.extractAllNodesThatMatch(orFilter);
-                e.printStackTrace();
+               // e.printStackTrace();
             } 
             
             StringBuffer content=new StringBuffer();
             StringBuffer title=new StringBuffer();
             for (NodeIterator i = nodes.elements (); i.hasMoreNodes(); ) {
                 Node node = i.nextNode();
-                if(node.toHtml().startsWith("<div class=\"lemmaTitleH1\"")){title.append(node.toHtml());}
-                if(node.toHtml().startsWith("<div class=\"text lazyload\"")){content.append(node.toHtml());}
+                if(node.toHtml().startsWith("<div class=\"lemmaTitleH1\"")||node.toHtml().startsWith("<span class=\"lemmaTitleH1\"")){title.append(node.toHtml());}
+                if(node.toHtml().startsWith("<div class=\"text lazyload\"")||node.toHtml().startsWith("<div class=\"text\" id=\"sec-content0\"")){content.append(node.toHtml());}
             }
             wiki.setWikifrom(WIKIFROM.BAIDU.name());
             wiki.setPawTime(new Date(System.currentTimeMillis()));
-            wiki.setTitle(title.toString());
-            wiki.setContent(content.toString());
+            
+            //将所有的script标签去掉
+            wiki.setTitle(title.toString().replaceAll("<scrpit.*?/script>", ""));
+             
+            String contentReplace="";
+            contentReplace=content.toString().replaceAll("<script.*?/script>", "");
+            contentReplace=contentReplace.toString().replaceAll("<img.*?/>", " ");
+          //  contentReplace=contentReplace.toString().replaceAll("<span.*text_edit\\seditable-title.*?/span>", "");
+            
+                    
+            wiki.setContent(contentReplace);
+            
             wiki.setUrl(url);
         }
         catch( Exception e ) {     
