@@ -2,12 +2,10 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.LockObtainFailedException;
 
 public class PaodingWriterWorker implements Runnable
@@ -16,45 +14,37 @@ public class PaodingWriterWorker implements Runnable
     private String TITLE_NAME = "TITLE";
     private String CONTENT_NAME = "CONTENT";
     private String ID_NAME = "ID";
-    
-    // 将庖丁封装成符合Lucene要求的Analyzer规范
-    private Analyzer analyzer;
-    private Directory ramDir;
 
     public void run()
     {
-        ramDir = LuceneConfig.getStoreDirectory();
-        analyzer = LuceneConfig.getAnalyzer();
         try
         {
             int i=0;
             // 读取数据库的数据
             while(true){
-                List<WIKI> wikis=DbUtils.getUnShardingWIKI(50);
+                List<WIKI> wikis=DbUtils.getUnShardingWIKI(100);
                 long start=System.currentTimeMillis();
+                if(wikis.size()==0){Thread.sleep(20000);}
                 for(WIKI wiki:wikis){
                     if(null==wiki.getTitle()||"".equals(wiki.getTitle().trim())){
                         DbUtils.updateSharded(wiki.getUuid());
                         continue;
                     }
                     String content=wiki.getContent();
-//                    content=content.replaceAll("<scrpit.*?/script>", "");
-//                    content=content.replaceAll("<span.*>", "");
-//                    content=content.replaceAll("</span>", "");
-//                    content=content.replaceAll("<div.*\">", "");
-//                    content=content.replaceAll("</div>", "");
-//                    content=content.replaceAll("<ul.*\">", "");
-//                    content=content.replaceAll("</ul>", "");
-//                    content=content.replaceAll("<li.*\">", "");
-//                    content=content.replaceAll("</li>", "");
-//                    content=content.replaceAll("<a.*>", "");
-                    content=content.replaceAll("<style.*?/style>", "");
+                    content=content.replaceAll("<script[^>]*?>.*?</script>", "");
+                    content=content.replaceAll("<style[^>]*?>.*?</style>", "");
                     content=content.replaceAll("<.*?(\\n)*>", "");
-                    content=content.replaceAll("<.*?", "");
-                    content=content.replaceAll(".*?>", "");
+                    content=content.replaceAll("<a.*?20px\"", "");
+                    content=content.replaceAll("data-lemmaid.*?>", "");
+                    content=content.replaceAll("style=\".*?>", "");
+                    content=content.replaceAll("&nbsp;", "");
+                    content=content.replaceAll("<a.*?0px;\"","");
+                    content=content.replaceAll("iframe","-iframe-");
+                    content=content.replaceAll("收藏 查看.*?赶紧来编辑吧！","");
+                    content=content.replaceAll("收藏 查看.*?编辑","");
+                    content=content.replaceAll("收藏 查看.*?有用\\+1","");
                     wiki.setContent(content);
                     sharding(wiki);
-                   // System.out.println(wiki.getUuid());
                     DbUtils.updateSharded(wiki.getUuid());
                 }
                 i+=wikis.size();
@@ -76,9 +66,7 @@ public class PaodingWriterWorker implements Runnable
     {
         try
         {
-            IndexWriter writer = new IndexWriter(ramDir, analyzer);
-            ramDir.makeLock(IndexWriter.WRITE_LOCK_NAME).release();
-            
+        	IndexWriter writer=LuceneConfig.getIndexWriter();
             Document doc = new Document();
             Field title = new Field(TITLE_NAME, wiki.getTitle(), Field.Store.YES, Field.Index.UN_TOKENIZED, Field.TermVector.WITH_POSITIONS_OFFSETS);
             Field content = new Field(CONTENT_NAME, wiki.getContent(), Field.Store.YES, Field.Index.TOKENIZED, Field.TermVector.WITH_POSITIONS_OFFSETS);
@@ -87,8 +75,7 @@ public class PaodingWriterWorker implements Runnable
             doc.add(content);
             doc.add(id);
             writer.addDocument(doc);
-            writer.optimize();
-            writer.close();
+           // writer.optimize();
         }
         catch (CorruptIndexException e)
         {

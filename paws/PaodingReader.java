@@ -4,7 +4,6 @@ import java.util.List;
 
 import net.paoding.analysis.examples.gettingstarted.BoldFormatter;
 
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexReader;
@@ -19,7 +18,6 @@ import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.QueryScorer;
 import org.apache.lucene.search.highlight.SimpleFragmenter;
 import org.apache.lucene.search.highlight.TokenSources;
-import org.apache.lucene.store.Directory;
 
 public class PaodingReader
 {
@@ -27,19 +25,13 @@ public class PaodingReader
     private static String CONTENT_NAME = "CONTENT";
     private static String ID_NAME = "ID";
     
-    // 将庖丁封装成符合Lucene要求的Analyzer规范
-    private static Analyzer analyzer;
-    private static Directory ramDir;
-    static{
-        analyzer=LuceneConfig.getAnalyzer();
-        ramDir=LuceneConfig.getStoreDirectory();
-    }
+   
     public List<WIKI> query(String queryString) throws CorruptIndexException, IOException, ParseException
     {
-        IndexReader reader = IndexReader.open(ramDir);
-        QueryParser parser = new QueryParser(CONTENT_NAME, analyzer);
+        IndexReader reader = LuceneConfig.getReader();
+        QueryParser parser = new QueryParser(CONTENT_NAME, LuceneConfig.getAnalyzer());
         Query query = parser.parse(queryString);
-        Searcher searcher = new IndexSearcher(ramDir);
+        Searcher searcher = new IndexSearcher(reader);
         query = query.rewrite(reader);
         System.out.println("Searching for: " + query.toString(CONTENT_NAME));
         Hits hits = searcher.search(query);
@@ -57,14 +49,19 @@ public class PaodingReader
             String fragmentSeparator = "...";
             TermPositionVector tpv = (TermPositionVector) reader.getTermFreqVector(hits.id(i), CONTENT_NAME);
             TokenStream tokenStream = TokenSources.getTokenStream(tpv);
-            String result = highlighter.getBestFragments(tokenStream, qtext, maxNumFragmentsRequired, fragmentSeparator);
+            String result_content=qtext;
+			try {
+				result_content = highlighter.getBestFragments(tokenStream, qtext, maxNumFragmentsRequired, fragmentSeparator);
+			} catch (StringIndexOutOfBoundsException e) {
+				System.err.println("遇了个错误");
+				e.printStackTrace();
+			}
             WIKI wiki=new WIKI();
             wiki.setUuid(qid);
             wiki.setTitle(qtitle);
-            wiki.setContent(result);
+            wiki.setContent(result_content);
             lw.add(wiki);
         }
-        reader.close();
         return lw;
     }
 }

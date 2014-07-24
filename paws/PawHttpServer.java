@@ -1,6 +1,7 @@
 
 import java.io.*;
 import java.net.*;
+import java.sql.SQLException;
 import java.util.List;
 /**
  * MyHttpServer 实现一个简单的HTTP服务器端，可以获取用户提交的内容
@@ -20,17 +21,18 @@ public class PawHttpServer implements Runnable{
         query = null;
     }
     //处理GET请求
-    private void doGet(InputStream reader, OutputStream out) throws Exception {
+    private void doGet(InputStream in, OutputStream out) throws Exception {
             PaodingReader read=new PaodingReader();
             List<WIKI> wis = read.query(this.query);
             
             StringBuffer sb=new StringBuffer();
             sb.append("<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
             
-            sb.append("<style>b{color:red}</style>");
+            sb.append("<style>b{color:red}.lemmaTitleH1{font-size:1.1em;font-weight:bold;}</style>");
             sb.append("<title>"+this.query+"</title></head><body>");
             
             for(WIKI wiki:wis){
+            	sb.append("<div  onclick=\"window.location.href='/goto/"+wiki.getUuid()+"'\">");
                 sb.append("<div>id:");
                 sb.append(wiki.getUuid());
                 sb.append("</div>");
@@ -40,9 +42,9 @@ public class PawHttpServer implements Runnable{
                 sb.append("</div>");
                 
                 sb.append("<div>");
-                sb.append(wiki.getContent());
+                sb.append(wiki.getContent().replaceAll("iframe","-iframe-"));
                 sb.append("</div>");
-                
+                sb.append("</div>");
                 sb.append("<hr>");
             }
             
@@ -52,10 +54,38 @@ public class PawHttpServer implements Runnable{
             
             out.write(buf);
             out.close();
-            reader.close();
+            in.close();
          
     }
-    
+    private void doGoto(InputStream in, OutputStream out) throws SQLException, IOException {
+    	 
+        WIKI wiki =  DbUtils.getWikiDetailById(this.query);
+        
+        StringBuffer sb=new StringBuffer();
+        sb.append("<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
+        
+        sb.append("<style>b{color:red}.lemmaTitleH1{font-size:1.1em;font-weight:bold;}</style>");
+        sb.append("<title>"+this.query+"</title></head><body>");
+        
+       
+        sb.append("<div>");
+        sb.append(wiki.getTitle());
+        sb.append("</div>");
+        
+        sb.append("<div>");
+        sb.append(wiki.getContent().replaceAll("<img.*?>", ",").replaceAll("<script[^>]*?>.*?</script>", ""));
+        sb.append("</div>");
+        sb.append("</div>");
+           
+       
+        sb.append("</body></html>");
+        
+        byte[] buf = sb.toString().getBytes();
+        
+        out.write(buf);
+        out.close();
+        in.close();
+	}
     public void run()
     {
         try
@@ -75,10 +105,15 @@ public class PawHttpServer implements Runnable{
                     String method = line.substring(0, 4).trim();
                     OutputStream out = socket.getOutputStream();
                     this.query = line.split(" ")[1];
-                    if ("GET".equalsIgnoreCase(method)&&query.startsWith("/query/")) {
-                        System.err.println("query:"+query.substring(7));
-                        this.query=URLDecoder.decode(query.substring(7),"UTF-8");
-                        this.doGet(in,out);
+                    if ("GET".equalsIgnoreCase(method)) {
+                    	if(query.startsWith("/query/")){
+                    		this.query=URLDecoder.decode(query.substring(7),"UTF-8");
+                    		this.doGet(in,out);
+                    	}
+                    	if(query.startsWith("/goto/")){
+                    		this.query=URLDecoder.decode(query.substring(6),"UTF-8");
+                    		this.doGoto(in,out);
+                    	}
                     }
                 }
                 
@@ -95,4 +130,5 @@ public class PawHttpServer implements Runnable{
         }
       
     }
+	
 }
