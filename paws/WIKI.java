@@ -7,6 +7,7 @@ public class WIKI
     private String content;
     private String wikifrom;
     private String url;
+    private String uuid;
 
     public Date getPawTime()
     {
@@ -56,6 +57,16 @@ public class WIKI
     public void setUrl(String url)
     {
         this.url = url;
+    }
+
+    public String getUuid()
+    {
+        return uuid;
+    }
+
+    public void setUuid(String uuid)
+    {
+        this.uuid = uuid;
     }
 
 }

@@ -2,6 +2,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -9,6 +11,8 @@ public class DbUtils
 {
     private static String INSERTWIKI="INSERT INTO T_WIKI(UUID,TITLE,CONTENT,WIKIFROM,URLLINK,PAWTIME) VALUES(?,?,?,?,?,?)";
     private static String SELECTWIKI="SELECT 1 FROM  T_WIKI WHERE URLLINK=?";
+    private static String SELECTUNSHARDINGWIKI="SELECT UUID,TITLE,CONTENT FROM T_WIKI WHERE ISSHARDING=0 LIMIT ?";
+    private static String UPDATESHARDED="UPDATE T_WIKI SET ISSHARDING=1 WHERE UUID = ?";
     
     public static int addAWiki(WIKI wiki) throws SQLException{
         Connection con= DBConnectPool.getConnection();
@@ -21,7 +25,7 @@ public class DbUtils
         stat.setString(++index, wiki.getUrl());
         stat.setDate(++index, wiki.getPawTime());
         int result=stat.executeUpdate();
-        System.out.println(wiki.getTitle()+"----INSERTED");
+        //System.out.println(wiki.getTitle()+"----INSERTED");
         stat.close();
         return result;
     }
@@ -36,5 +40,28 @@ public class DbUtils
         result.close();
         stat.close();
         return isLinkExist;
+    }
+    public static List<WIKI> getUnShardingWIKI(int limit) throws SQLException{
+        Connection con= DBConnectPool.getConnection();
+        PreparedStatement stat = con.prepareStatement(SELECTUNSHARDINGWIKI);
+        stat.setInt(1, limit);
+        ResultSet result=stat.executeQuery();
+        List<WIKI> lw=new ArrayList<WIKI>();
+        while(result.next()){
+            WIKI wiki=new WIKI();
+            wiki.setUuid(result.getString("UUID"));
+            wiki.setTitle(result.getString("TITLE"));
+            wiki.setContent(result.getString("CONTENT"));
+            lw.add(wiki);
+        }
+        result.close();
+        stat.close();
+        return lw;
+    }
+    public static void updateSharded(String id)throws SQLException{
+        Connection con= DBConnectPool.getConnection();
+        PreparedStatement stat = con.prepareStatement(UPDATESHARDED);
+        stat.setString(1, id);
+        stat.executeUpdate();
     }
 }
