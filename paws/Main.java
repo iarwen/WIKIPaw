@@ -18,7 +18,7 @@ public class Main
         PawHttpServer server = new PawHttpServer(8080);
         tpx.submit( server );
         
-        for (int i = 1; i <=1000000; i++)
+        for (int i = 105000; i <=1000000; i++)
         {
             BaiduPawWorker worker=new BaiduPawWorker("http://baike.baidu.com/view/" + i + ".htm");
             tpx.submit(worker);
